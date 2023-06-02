@@ -111,7 +111,7 @@
 
     _saveToStorage: function saveToStorage(data, thumbprint, ttl) {
       if (this.storage) {
-        this.storage.set(keys.data, data, ttl);
+        this.storage.setCompressed(keys.data, data, ttl);
         this.storage.set(keys.protocol, location.protocol, ttl);
         this.storage.set(keys.thumbprint, thumbprint, ttl);
       }
@@ -121,7 +121,7 @@
       var stored = {}, isExpired;
 
       if (this.storage) {
-        stored.data = this.storage.get(keys.data);
+        stored.data = this.storage.getCompressed(keys.data);
         stored.protocol = this.storage.get(keys.protocol);
         stored.thumbprint = this.storage.get(keys.thumbprint);
       }

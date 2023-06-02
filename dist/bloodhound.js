@@ -1,7 +1,7 @@
 /*!
  * typeahead.js 0.10.5
  * https://github.com/twitter/typeahead.js
- * Copyright 2013-2014 Twitter, Inc. and other contributors; Licensed MIT
+ * Copyright 2013-2023 Twitter, Inc. and other contributors; Licensed MIT
  */
 
 (function($) {
@@ -248,11 +248,30 @@
                 _ttlKey: function(key) {
                     return this._prefix(key) + this.ttlKey;
                 },
+                getCompressed: function(key) {
+                    if (this.isExpired(key)) {
+                        this.remove(key);
+                    }
+                    var data = ls.getItem(this._prefix(key));
+                    if (typeof LZString !== "undefined" && data) data = LZString.decompressFromUTF16(data);
+                    return decode(data);
+                },
                 get: function(key) {
                     if (this.isExpired(key)) {
                         this.remove(key);
                     }
                     return decode(ls.getItem(this._prefix(key)));
+                },
+                setCompressed: function(key, val, ttl) {
+                    if (_.isNumber(ttl)) {
+                        ls.setItem(this._ttlKey(key), encode(now() + ttl));
+                    } else {
+                        ls.removeItem(this._ttlKey(key));
+                    }
+                    var data = val;
+                    if (typeof LZString !== "undefined") data = LZString.compressToUTF16(encode(val));
+                    console.log("Key to set -> ", key);
+                    return ls.setItem(this._prefix(key), data);
                 },
                 set: function(key, val, ttl) {
                     if (_.isNumber(ttl)) {
@@ -288,6 +307,8 @@
             methods = {
                 get: _.noop,
                 set: _.noop,
+                getCompressed: _.noop,
+                setCompressed: _.noop,
                 remove: _.noop,
                 clear: _.noop,
                 isExpired: _.noop
@@ -645,7 +666,7 @@
             },
             _saveToStorage: function saveToStorage(data, thumbprint, ttl) {
                 if (this.storage) {
-                    this.storage.set(keys.data, data, ttl);
+                    this.storage.setCompressed(keys.data, data, ttl);
                     this.storage.set(keys.protocol, location.protocol, ttl);
                     this.storage.set(keys.thumbprint, thumbprint, ttl);
                 }
@@ -653,7 +674,7 @@
             _readFromStorage: function readFromStorage(thumbprint) {
                 var stored = {}, isExpired;
                 if (this.storage) {
-                    stored.data = this.storage.get(keys.data);
+                    stored.data = this.storage.getCompressed(keys.data);
                     stored.protocol = this.storage.get(keys.protocol);
                     stored.thumbprint = this.storage.get(keys.thumbprint);
                 }
